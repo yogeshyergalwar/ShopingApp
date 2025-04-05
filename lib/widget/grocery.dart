@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
-import '../data/dummy_data.dart';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:untitled4/data/cateory.dart';
 import '../model/grocery_items.dart';
 import 'new_list.dart';
 
@@ -12,38 +14,62 @@ class GroceryList extends StatefulWidget {
 }
 
 class _GroceryListState extends State<GroceryList> {
-  final List<GroceryItem> _getRegistrationData = [];
+  List<GroceryItem> _getRegistrationData = [];
 
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    _loadfinal();
+  }
 
+  void _loadfinal() async {
+    final url = Uri.https(
+        'shopingapp-ed73e-default-rtdb.firebaseio.com', 'shoping-list.json');
 
-  void newpage() async {
-    final newList =
-        await Navigator.of(context).push<GroceryItem>(MaterialPageRoute(
-      builder: (ctx) => NewItem(),
-    ));
-
-    if (newList == null) {
-      return null;
+    final res = await http.get(url);
+    final Map<String,dynamic> _loadlist = json.decode(res.body);
+    final List<GroceryItem> _loaditem = [];
+    for (final item in _loadlist.entries) {
+      final category = categories.entries
+          .firstWhere(
+              (catitem) => catitem.value.title == item.value['category'])
+          .value;
+      _loaditem.add(GroceryItem(
+          id: item.key,
+          name: item.value['name'],
+          quantity: item.value['quantity'],
+          category: category));
     }
     setState(() {
-      _getRegistrationData.add(newList);
+      _getRegistrationData = _loaditem;
     });
+    print(res.body);
   }
-void _onremove(GroceryItem item){
-    _getRegistrationData.remove(item);
 
-}
+  void newpage() async {
+    await Navigator.of(context).push<GroceryItem>(MaterialPageRoute(
+      builder: (ctx) => NewItem(),
+    ));
+    _loadfinal();
+  }
+
+  void _onremove(GroceryItem item) {
+    _getRegistrationData.remove(item);
+  }
+
   @override
   Widget build(BuildContext context) {
     Widget conten = Center(
       child: Text('No Data Added'),
     );
-    if(_getRegistrationData.isNotEmpty){
-      conten=  ListView.builder(
+    if (_getRegistrationData.isNotEmpty) {
+      conten = ListView.builder(
         itemCount: _getRegistrationData.length,
         itemBuilder: (ctx, index) => Dismissible(
-          onDismissed: (direction) =>_onremove(_getRegistrationData[index]) ,
-       ///   background : Theme.of(context).colorScheme.secondary,
+          onDismissed: (direction) => _onremove(_getRegistrationData[index]),
+
+          ///   background : Theme.of(context).colorScheme.secondary,
           key: ValueKey(_getRegistrationData[index].id),
           child: ListTile(
             title: Text(_getRegistrationData[index].name),
@@ -59,17 +85,16 @@ void _onremove(GroceryItem item){
       );
     }
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Your Groceries'),
-        actions: [
-          IconButton(
-              onPressed: () {
-                newpage();
-              },
-              icon: Icon(Icons.add))
-        ],
-      ),
-      body:conten
-    );
+        appBar: AppBar(
+          title: const Text('Your Groceries'),
+          actions: [
+            IconButton(
+                onPressed: () {
+                  newpage();
+                },
+                icon: Icon(Icons.add))
+          ],
+        ),
+        body: conten);
   }
 }
