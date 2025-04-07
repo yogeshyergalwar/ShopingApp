@@ -17,6 +17,7 @@ class NewItem extends StatefulWidget {
 }
 
 class _NewItemState extends State<NewItem> {
+  bool _isSending=false;
   @override
   Widget build(BuildContext context) {
     final _FormKey = GlobalKey<FormState>();
@@ -26,6 +27,9 @@ class _NewItemState extends State<NewItem> {
     void _saveData() {
       if (_FormKey.currentState!.validate()) {
         _FormKey.currentState!.save();
+        setState(() {
+          _isSending=true;
+        });
         final url = Uri.https('shopingapp-ed73e-default-rtdb.firebaseio.com',
             'shoping-list.json');
         http.post(url,
@@ -126,16 +130,17 @@ class _NewItemState extends State<NewItem> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () {
+                    onPressed:_isSending? null: () {
                       _FormKey.currentState!.reset();
                     },
-                    child: const Text('Reset'),
-                  ),
+                    child: _isSending?  const Center(child: CircularProgressIndicator(),
+                  ): Text('Reset'),),
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed:_isSending? null: () {
                       _saveData();
                     },
-                    child: const Text('Add Item'),
+                    child: _isSending?  const Center(child: CircularProgressIndicator(),
+                    ): Text('Add Item'),
                   )
                 ],
               ),

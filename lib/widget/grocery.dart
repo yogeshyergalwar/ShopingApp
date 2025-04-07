@@ -15,12 +15,14 @@ class GroceryList extends StatefulWidget {
 
 class _GroceryListState extends State<GroceryList> {
   List<GroceryItem> _getRegistrationData = [];
+  bool  _isloading=true;
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     _loadfinal();
+
   }
 
   void _loadfinal() async {
@@ -28,6 +30,12 @@ class _GroceryListState extends State<GroceryList> {
         'shopingapp-ed73e-default-rtdb.firebaseio.com', 'shoping-list.json');
 
     final res = await http.get(url);
+    if(res.body=='null'){
+      setState(() {
+        _isloading=false;
+        return;
+      });
+    }
     final Map<String,dynamic> _loadlist = json.decode(res.body);
     final List<GroceryItem> _loaditem = [];
     for (final item in _loadlist.entries) {
@@ -40,9 +48,11 @@ class _GroceryListState extends State<GroceryList> {
           name: item.value['name'],
           quantity: item.value['quantity'],
           category: category));
+
     }
     setState(() {
       _getRegistrationData = _loaditem;
+      _isloading=false;
     });
     print(res.body);
   }
@@ -54,8 +64,21 @@ class _GroceryListState extends State<GroceryList> {
     _loadfinal();
   }
 
-  void _onremove(GroceryItem item) {
-    _getRegistrationData.remove(item);
+  void _onremove(GroceryItem item)async {
+   final index= _getRegistrationData.indexOf(item);
+    setState(() {
+      _getRegistrationData.remove(item);
+    });
+    final url = Uri.https(
+        'shopingapp-ed73e-default-rtdb.firebaseio.com', 'shoping-list/${item.id}.json');
+
+   final res= await http.delete(url);
+   if( res.statusCode>=400){
+     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Remove Failed')));
+     setState(() {
+       _getRegistrationData.insert(index,item);
+     });
+   }
   }
 
   @override
@@ -63,6 +86,9 @@ class _GroceryListState extends State<GroceryList> {
     Widget conten = Center(
       child: Text('No Data Added'),
     );
+    if(_isloading){
+      conten=Center(child: CircularProgressIndicator(),);
+    }
     if (_getRegistrationData.isNotEmpty) {
       conten = ListView.builder(
         itemCount: _getRegistrationData.length,
